@@ -1,0 +1,31 @@
+{
+  "name": "bitcoin-htlc-swaps",
+  "version": "1.0.0",
+  "description": "Bitcoin Hash Time Locked Contracts for atomic swaps",
+  "main": "index.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test/test.js",
+    "example:btc-to-eth": "node examples/btc-to-eth.js",
+    "example:eth-to-btc": "node examples/eth-to-btc.js"
+  },
+  "dependencies": {
+    "bitcoinjs-lib": "^6.1.5",
+    "ecpair": "^2.1.0",
+    "tiny-secp256k1": "^2.2.4"
+  },
+  "devDependencies": {
+    "chalk": "^5.3.0"
+  },
+  "keywords": [
+    "bitcoin",
+    "htlc",
+    "atomic-swaps",
+    "blockchain",
+    "cryptocurrency"
+  ],
+  "author": "",
+  "license": "MIT"
+}
