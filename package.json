@@ -7,10 +7,10 @@
   "private": true,
   "scripts": {
     "start": "node index.js",
-    "test": "npm run test:btc && npm run test:bitcoin-sdk && npm run test:contracts",
+    "test": "npm run test:btc && npm run test:bitcoin-sdk",
     "test:btc": "node test/test.js",
     "test:bitcoin-sdk": "node test/test-bitcoin-sdk.js",
-    "test:contracts": "cd evm-crossing && npx --yes hardhat test",
+    "test:contracts": "cd evm-crossing && npx hardhat test",
     "example:btc-to-eth": "node examples/btc-to-eth.js",
     "example:eth-to-btc": "node examples/eth-to-btc.js",
     "example:bitcoin-sdk": "node examples/bitcoin-sdk-demo.js",
