@@ -12,6 +12,7 @@
     "example:eth-to-btc": "node examples/eth-to-btc.js",
     "test:cross-chain": "node scripts/cross-chain-test.js",
     "deploy:test": "node scripts/deploy-and-test.js",
+    "test:bitcoin-rpc": "node -e \"import('./src/bitcoin-rpc.js').then(m => m.testBitcoinRPC())\"",
     "contracts:status": "node scripts/load-contracts.js status",
     "contracts:latest": "node scripts/load-contracts.js latest",
     "contracts:all": "node scripts/load-contracts.js all",

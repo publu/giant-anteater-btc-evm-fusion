@@ -203,6 +203,13 @@ class KeyGenerator {
     const envContent = `# Generated Test Keys - ${keySet.generated}
 # ⚠️  FOR TESTING ONLY - DO NOT USE IN PRODUCTION
 
+# Bitcoin Testnet RPC Configuration
+BTC_RPC_URL=https://blockstream.info/testnet/api
+# Alternative Bitcoin testnet RPC endpoints:
+# BTC_RPC_URL=https://api.blockcypher.com/v1/btc/test3
+# BTC_RPC_URL=https://testnet.blockexplorer.com/api
+# BTC_RPC_URL=https://mempool.space/testnet/api
+
 # Bitcoin Configuration
 BTC_PRIVATE_KEY=${keySet.bitcoin.privateKey}
 
@@ -371,12 +378,16 @@ async function main() {
       console.log('====================================\n')
       console.log('Commands:')
       console.log('  generate, new          - Generate new key pair')
+      console.log('  addresses <filename>   - Show addresses from saved keys')
+      console.log('  list                   - List all saved key files')
       console.log('  from-seed <phrase>     - Generate from seed phrase')
       console.log('  validate <private_key> - Validate a private key')
       console.log('  env-only              - Generate only .env file')
       console.log('')
       console.log('Examples:')
       console.log('  npm run generate-keys')
+      console.log('  npm run generate-keys list')
+      console.log('  npm run generate-keys addresses test-keys-2024-01-01.json')
       console.log('  npm run generate-keys from-seed "my test phrase"')
       console.log('  npm run generate-keys validate 1234...abcd')
       console.log('')

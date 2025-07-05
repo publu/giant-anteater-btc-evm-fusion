@@ -3,6 +3,7 @@
   "networks": {
     "bitcoin": {
       "network": "testnet",
+      "rpcUrl": "https://blockstream.info/testnet/api",
       "description": "Bitcoin testnet for HTLC testing"
     },
     "ethereum": {
