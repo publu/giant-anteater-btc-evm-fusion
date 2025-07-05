@@ -42,6 +42,19 @@ contract MinimalEscrowDst is MinimalEscrow {
     }
 
     /**
+     * @notice Public withdraw funds to maker with the correct secret during public period.
+     * @param secret The secret that unlocks the escrow.
+     * @param immutables The immutable values used to deploy the clone contract.
+     */
+    function publicWithdraw(bytes32 secret, Immutables calldata immutables)
+        external
+        onlyAfter(immutables.timelocks.get(TimelocksLib.Stage.DstPublicWithdrawal))
+        onlyBefore(immutables.timelocks.get(TimelocksLib.Stage.DstCancellation))
+    {
+        _withdraw(secret, immutables);
+    }
+
+    /**
      * @notice Cancel the escrow and return funds to taker after timelock expires.
      * @param immutables The immutable values used to deploy the clone contract.
      */

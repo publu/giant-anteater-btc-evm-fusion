@@ -100,6 +100,9 @@ contract MinimalEscrowFactory {
         // Check that the escrow cancellation will start not later than the cancellation time on the source chain.
         if (immutables.timelocks.get(TimelocksLib.Stage.DstCancellation) > srcCancellationTimestamp) revert InvalidCreationTime();
 
+        // Validate timelock sequence makes sense
+        _validateTimelockSequence(immutables.timelocks);
+
         bytes32 salt = immutables.hashMem();
         address escrow = _deployEscrow(salt, msg.value, ESCROW_DST_IMPLEMENTATION);
         
@@ -137,5 +140,32 @@ contract MinimalEscrowFactory {
      */
     function _deployEscrow(bytes32 salt, uint256 value, address implementation) internal returns (address escrow) {
         escrow = implementation.cloneDeterministic(salt, value);
+    }
+
+    /**
+     * @notice Validates that timelock sequence is logical.
+     * @param timelocks The timelocks to validate.
+     */
+    function _validateTimelockSequence(Timelocks timelocks) internal pure {
+        // Source chain validation
+        uint256 srcWithdrawal = timelocks.get(TimelocksLib.Stage.SrcWithdrawal);
+        uint256 srcPublicWithdrawal = timelocks.get(TimelocksLib.Stage.SrcPublicWithdrawal);
+        uint256 srcCancellation = timelocks.get(TimelocksLib.Stage.SrcCancellation);
+        uint256 srcPublicCancellation = timelocks.get(TimelocksLib.Stage.SrcPublicCancellation);
+        
+        if (srcWithdrawal >= srcPublicWithdrawal) revert InvalidCreationTime();
+        if (srcPublicWithdrawal >= srcCancellation) revert InvalidCreationTime();
+        if (srcCancellation >= srcPublicCancellation) revert InvalidCreationTime();
+        
+        // Destination chain validation
+        uint256 dstWithdrawal = timelocks.get(TimelocksLib.Stage.DstWithdrawal);
+        uint256 dstPublicWithdrawal = timelocks.get(TimelocksLib.Stage.DstPublicWithdrawal);
+        uint256 dstCancellation = timelocks.get(TimelocksLib.Stage.DstCancellation);
+        
+        if (dstWithdrawal >= dstPublicWithdrawal) revert InvalidCreationTime();
+        if (dstPublicWithdrawal >= dstCancellation) revert InvalidCreationTime();
+        
+        // Cross-chain validation: destination should resolve before source cancellation
+        if (dstCancellation >= srcCancellation) revert InvalidCreationTime();
     }
 } 

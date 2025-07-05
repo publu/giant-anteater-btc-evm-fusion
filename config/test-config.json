@@ -1,0 +1,34 @@
+{
+  "description": "Cross-chain atomic swap test configuration",
+  "networks": {
+    "bitcoin": {
+      "network": "testnet",
+      "description": "Bitcoin testnet for HTLC testing"
+    },
+    "ethereum": {
+      "network": "sepolia",
+      "rpcUrl": "https://sepolia.infura.io/v3/YOUR_INFURA_KEY",
+      "chainId": 11155111,
+      "description": "Ethereum Sepolia testnet"
+    }
+  },
+  "contracts": {
+    "factoryAddress": "",
+    "srcImplementation": "",
+    "dstImplementation": "",
+    "testToken": ""
+  },
+  "timeouts": {
+    "srcWithdrawal": 300,
+    "srcPublicWithdrawal": 600,
+    "srcCancellation": 900,
+    "srcPublicCancellation": 1200,
+    "dstWithdrawal": 180,
+    "dstPublicWithdrawal": 360,
+    "dstCancellation": 720
+  },
+  "amounts": {
+    "swapAmount": "0.001",
+    "safetyDeposit": "0.0001"
+  }
+}

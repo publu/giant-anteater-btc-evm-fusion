@@ -26,7 +26,9 @@
     "tailwindcss": "^4.1.4",
     "ts-node": "^10.9.1",
     "typechain": "^8.3.2",
-    "typescript": "^5.2.2"
+    "test": "vitest",
+    "deploy:sepolia": "npx hardhat run scripts/initEVM.ts --network sepolia",
+    "test:factory": "npx hardhat test test/MinimalEscrowFactory.test.ts --network sepolia"
   },
   "dependencies": {
     "@1inch/solidity-utils": "github:1inch/solidity-utils",

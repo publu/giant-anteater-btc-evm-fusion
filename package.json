@@ -9,7 +9,9 @@
     "start": "node index.js",
     "test": "node test/test.js",
     "example:btc-to-eth": "node examples/btc-to-eth.js",
-    "example:eth-to-btc": "node examples/eth-to-btc.js"
+    "example:eth-to-btc": "node examples/eth-to-btc.js",
+    "test:cross-chain": "node scripts/cross-chain-test.js",
+    "deploy:test": "node scripts/deploy-and-test.js"
   },
   "dependencies": {
     "bitcoinjs-lib": "^6.1.5",

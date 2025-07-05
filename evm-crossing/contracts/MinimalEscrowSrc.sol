@@ -44,6 +44,19 @@ contract MinimalEscrowSrc is MinimalEscrow {
     }
 
     /**
+     * @notice Public withdraw funds to taker with the correct secret during public period.
+     * @param secret The secret that unlocks the escrow.
+     * @param immutables The immutable values used to deploy the clone contract.
+     */
+    function publicWithdraw(bytes32 secret, Immutables calldata immutables)
+        external
+        onlyAfter(immutables.timelocks.get(TimelocksLib.Stage.SrcPublicWithdrawal))
+        onlyBefore(immutables.timelocks.get(TimelocksLib.Stage.SrcCancellation))
+    {
+        _withdrawTo(secret, immutables.taker.get(), immutables);
+    }
+
+    /**
      * @notice Withdraw funds to a specified target.
      * @param secret The secret that unlocks the escrow.
      * @param target The address to transfer ERC20 tokens to.
@@ -65,7 +78,21 @@ contract MinimalEscrowSrc is MinimalEscrow {
     function cancel(Immutables calldata immutables)
         external
         onlyTaker(immutables)
+        onlyValidImmutables(immutables)
         onlyAfter(immutables.timelocks.get(TimelocksLib.Stage.SrcCancellation))
+        onlyBefore(immutables.timelocks.get(TimelocksLib.Stage.SrcPublicCancellation))
+    {
+        _cancel(immutables);
+    }
+
+    /**
+     * @notice Public cancel the escrow and return funds to maker during public period.
+     * @param immutables The immutable values used to deploy the clone contract.
+     */
+    function publicCancel(Immutables calldata immutables)
+        external
+        onlyValidImmutables(immutables)
+        onlyAfter(immutables.timelocks.get(TimelocksLib.Stage.SrcPublicCancellation))
     {
         _cancel(immutables);
     }
