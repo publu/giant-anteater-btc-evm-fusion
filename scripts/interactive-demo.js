@@ -73,8 +73,7 @@ async function runDemo() {
   })
 
   function doClaim() {
-    const destKey = ECPair.makeRandom({ network })
-    const destAddr = bitcoin.payments.p2wpkh({ pubkey: destKey.publicKey, network }).address
+    const destAddr = 'mnYZWwsHPGUVpRsHk78Rp4dsDn2u412R27'
     console.log('\n\uD83D\uDD27 Creating redeem transaction...')
     const tx = coordinator.createRedeemTransaction(
       swap,

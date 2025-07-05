@@ -104,16 +104,34 @@ export class SwapCoordinator {
     if (swapConfig.redeemer === 'resolver') {
       // BTC->ETH: Resolver claims with secret
       signingKey = swapConfig.resolverKey || ECPair.fromPrivateKey(Buffer.alloc(32, 1)) // Placeholder
+      
+      // Create a temporary transaction to get the hash to sign
+      const tempTx = new bitcoin.Transaction()
+      const txidBuffer = Buffer.from(fundingTxId, 'hex').reverse()
+      tempTx.addInput(txidBuffer, fundingVout, 0xfffffffe)
+      const outputScript = bitcoin.address.toOutputScript(claimAddress, this.network)
+      tempTx.addOutput(outputScript, outputValue)
+      
+      const hashForSig = tempTx.hashForWitnessV0(0, swapConfig.script, fundingValue, bitcoin.Transaction.SIGHASH_ALL)
       const signature = bitcoin.script.signature.encode(
-        signingKey.sign(Buffer.alloc(32)), // Placeholder hash
+        signingKey.sign(hashForSig),
         bitcoin.Transaction.SIGHASH_ALL
       )
       witness = this.htlc.createRedeemWitness(signature, swapConfig.resolverPubKey, secret, swapConfig.script)
     } else {
       // ETH->BTC: User claims with secret
       signingKey = swapConfig.userKey || ECPair.fromPrivateKey(Buffer.alloc(32, 1)) // Placeholder
+      
+      // Create a temporary transaction to get the hash to sign
+      const tempTx = new bitcoin.Transaction()
+      const txidBuffer = Buffer.from(fundingTxId, 'hex').reverse()
+      tempTx.addInput(txidBuffer, fundingVout, 0xfffffffe)
+      const outputScript = bitcoin.address.toOutputScript(claimAddress, this.network)
+      tempTx.addOutput(outputScript, outputValue)
+      
+      const hashForSig = tempTx.hashForWitnessV0(0, swapConfig.script, fundingValue, bitcoin.Transaction.SIGHASH_ALL)
       const signature = bitcoin.script.signature.encode(
-        signingKey.sign(Buffer.alloc(32)), // Placeholder hash
+        signingKey.sign(hashForSig),
         bitcoin.Transaction.SIGHASH_ALL
       )
       witness = this.htlc.createRedeemWitness(signature, swapConfig.userPubKey, secret, swapConfig.script)
@@ -149,16 +167,36 @@ export class SwapCoordinator {
     if (swapConfig.refunder === 'user') {
       // BTC->ETH: User gets refund
       signingKey = swapConfig.userKey || ECPair.fromPrivateKey(Buffer.alloc(32, 1))
+      
+      // Create a temporary transaction to get the hash to sign
+      const tempTx = new bitcoin.Transaction()
+      const txidBuffer = Buffer.from(fundingTxId, 'hex').reverse()
+      tempTx.addInput(txidBuffer, fundingVout, 0xfffffffe)
+      const outputScript = bitcoin.address.toOutputScript(refundAddress, this.network)
+      tempTx.addOutput(outputScript, outputValue)
+      tempTx.locktime = swapConfig.locktime
+      
+      const hashForSig = tempTx.hashForWitnessV0(0, swapConfig.script, fundingValue, bitcoin.Transaction.SIGHASH_ALL)
       const signature = bitcoin.script.signature.encode(
-        signingKey.sign(Buffer.alloc(32)), // Placeholder hash
+        signingKey.sign(hashForSig),
         bitcoin.Transaction.SIGHASH_ALL
       )
       witness = this.htlc.createRefundWitness(signature, swapConfig.userKey.publicKey, swapConfig.script)
     } else {
       // ETH->BTC: Resolver gets refund
       signingKey = swapConfig.resolverKey || ECPair.fromPrivateKey(Buffer.alloc(32, 1))
+      
+      // Create a temporary transaction to get the hash to sign
+      const tempTx = new bitcoin.Transaction()
+      const txidBuffer = Buffer.from(fundingTxId, 'hex').reverse()
+      tempTx.addInput(txidBuffer, fundingVout, 0xfffffffe)
+      const outputScript = bitcoin.address.toOutputScript(refundAddress, this.network)
+      tempTx.addOutput(outputScript, outputValue)
+      tempTx.locktime = swapConfig.locktime
+      
+      const hashForSig = tempTx.hashForWitnessV0(0, swapConfig.script, fundingValue, bitcoin.Transaction.SIGHASH_ALL)
       const signature = bitcoin.script.signature.encode(
-        signingKey.sign(Buffer.alloc(32)), // Placeholder hash
+        signingKey.sign(hashForSig),
         bitcoin.Transaction.SIGHASH_ALL
       )
       witness = this.htlc.createRefundWitness(signature, swapConfig.resolverKey.publicKey, swapConfig.script)

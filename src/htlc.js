@@ -121,39 +121,44 @@ export class BitcoinHTLC {
    * @returns {string} Signed transaction hex
    */
   createSignedTransaction(prevTxId, prevVout, prevValue, outputAddress, outputValue, signingKey, redeemScript, witness, locktime = 0) {
-    const psbt = new bitcoin.Psbt({ network: this.network })
+    // Create the P2SH-P2WSH payment object to get the proper script
+    const p2wsh = bitcoin.payments.p2wsh({
+      redeem: { output: redeemScript },
+      network: this.network
+    })
     
-    // Add input
-    psbt.addInput({
-      hash: prevTxId,
-      index: prevVout,
-      sequence: 0xfffffffe, // Enable RBF and locktime
-      witnessScript: redeemScript,
-      value: prevValue
+    const p2sh = bitcoin.payments.p2sh({
+      redeem: p2wsh,
+      network: this.network
     })
 
+    // Create transaction manually
+    const tx = new bitcoin.Transaction()
+    
+    // Add input - convert txid string to Buffer
+    const txidBuffer = Buffer.from(prevTxId, 'hex').reverse() // bitcoinjs-lib expects little-endian
+    tx.addInput(txidBuffer, prevVout, 0xfffffffe) // sequence for RBF and locktime
+    
     // Add output
-    psbt.addOutput({
-      address: outputAddress,
-      value: outputValue
-    })
-
+    const outputScript = bitcoin.address.toOutputScript(outputAddress, this.network)
+    tx.addOutput(outputScript, outputValue)
+    
     // Set locktime if provided
     if (locktime > 0) {
-      psbt.setLocktime(locktime)
+      tx.locktime = locktime
     }
 
-    // Sign
-    psbt.signInput(0, signingKey)
+    // For P2SH-P2WSH, we need to create the proper witness structure
+    // The witness should include the P2WSH witness plus the P2SH redeem script
+    const p2shWitness = [
+      ...witness,                    // P2WSH witness (signature, pubkey, secret, etc.)
+      p2sh.redeem.output            // P2SH redeem script (the P2WSH script)
+    ]
 
-    // Finalize with custom witness
-    psbt.finalizeInput(0, () => {
-      return {
-        finalScriptWitness: bitcoin.script.toStack(witness)
-      }
-    })
+    // Set the witness
+    tx.setWitness(0, p2shWitness)
 
-    return psbt.extractTransaction().toHex()
+    return tx.toHex()
   }
 
   /**
