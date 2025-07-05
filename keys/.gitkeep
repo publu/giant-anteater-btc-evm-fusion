@@ -1,0 +1,3 @@
+# Keys directory
+# This directory will contain generated private keys for testing
+# Files in this directory should NEVER be committed to version control
