@@ -4,7 +4,7 @@ import * as ecc from 'tiny-secp256k1'
 import { randomBytes, createHash } from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { keccak256 } from 'keccak'
+import createKeccakHash from 'keccak'
 
 // Initialize ECC
 bitcoin.initEccLib(ecc)
@@ -83,7 +83,9 @@ class KeyGenerator {
     }
     
     // Ethereum address is last 20 bytes of keccak256(uncompressed_public_key)
-    const keccakHash = keccak256(publicKeyUncompressed)
+    const keccakHash = createKeccakHash('keccak256')
+      .update(Buffer.from(publicKeyUncompressed))
+      .digest()
     const address = '0x' + keccakHash.slice(-20).toString('hex')
 
     return {
@@ -102,7 +104,7 @@ class KeyGenerator {
    */
   toChecksumAddress(address) {
     const addr = address.toLowerCase().replace('0x', '')
-    const hash = keccak256(addr).toString('hex')
+    const hash = createKeccakHash('keccak256').update(addr).digest('hex')
     let checksumAddr = '0x'
     
     for (let i = 0; i < addr.length; i++) {
