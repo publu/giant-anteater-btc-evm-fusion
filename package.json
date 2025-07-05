@@ -18,7 +18,8 @@
     "contracts:all": "node scripts/load-contracts.js all",
     "deploy:quick": "node scripts/quick-deploy.js",
     "generate-keys": "node scripts/generate-keys.js",
-    "interactive": "node scripts/interactive-demo.js"
+    "interactive": "node scripts/interactive-demo.js",
+    "timer-demo": "node scripts/htlc-timer-demo.js"
   },
   "dependencies": {
     "bitcoinjs-lib": "^6.1.5",
