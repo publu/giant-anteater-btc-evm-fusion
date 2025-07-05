@@ -48,14 +48,20 @@ export class BitcoinHTLC {
    * @returns {Object} Address and payment object
    */
   getHTLCAddress(script) {
-    const payment = bitcoin.payments.p2wsh({ 
-      redeem: { output: script }, 
-      network: this.network 
+    const p2wsh = bitcoin.payments.p2wsh({
+      redeem: { output: script },
+      network: this.network
     })
-    
+
+    const p2sh = bitcoin.payments.p2sh({
+      redeem: p2wsh,
+      network: this.network
+    })
+
     return {
-      address: payment.address,
-      payment: payment
+      address: p2wsh.address,
+      payment: p2wsh,
+      p2shAddress: p2sh.address
     }
   }
 

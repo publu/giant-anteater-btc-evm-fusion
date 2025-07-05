@@ -15,6 +15,9 @@ const rl = readline.createInterface({
   output: process.stdout
 })
 
+let fundingTxId = 'fundingtxid'
+let fundingVout = 0
+let fundingValue = 10000
 async function main() {
   console.log('\uD83D\uDD2E BTC HTLC Timelock Demo\n')
 
@@ -23,13 +26,23 @@ async function main() {
   const { secret, hash: secretHash } = coordinator.htlc.generateSecret()
 
   const lockSeconds = 30
-  const swap = coordinator.setupBTCtoETH(userKey, resolverKey.publicKey, secretHash, lockSeconds / 3600)
+  const swap = coordinator.setupBTCtoETH(userKey, resolverKey, secretHash, lockSeconds / 3600)
 
-  console.log('\uD83D\uDD10 HTLC Address:', swap.address)
+  console.log('\uD83D\uDD10 HTLC Address:', swap.p2shAddress)
+  console.log('🔗 Explorer:', `https://mempool.space/testnet/address/${swap.p2shAddress}`)
   console.log('\uD83D\uDD11 Secret Hash :', secretHash.toString('hex'))
   console.log('\uD83D\uDDDD Secret      :', secret.toString('hex'))
   console.log('\u23F0 Timeout     :', lockSeconds, 'seconds from now\n')
 
+  fundingTxId = await new Promise(res => {
+    rl.question('Enter funding TXID (or press enter for example): ', ans => res(ans.trim() || 'fundingtxid'))
+  })
+  fundingVout = await new Promise(res => {
+    rl.question('Funding output index [0]: ', ans => res(ans.trim() ? parseInt(ans.trim()) : 0))
+  })
+  fundingValue = await new Promise(res => {
+    rl.question('Funding amount in satoshis [10000]: ', ans => res(ans.trim() ? parseInt(ans.trim()) : 10000))
+  })
   const endTime = Date.now() + lockSeconds * 1000
   console.log('\u23F3 Waiting for timelock... type "claim" to claim early')
   rl.prompt()
@@ -61,9 +74,9 @@ function claimFunds(secret, swap) {
   console.log('\n\uD83D\uDD27 Claiming funds with secret...')
   const tx = coordinator.createRedeemTransaction(
     swap,
-    'fundingtxid',
-    0,
-    10000,
+    fundingTxId,
+    fundingVout,
+    fundingValue,
     destAddr,
     secret,
     1000

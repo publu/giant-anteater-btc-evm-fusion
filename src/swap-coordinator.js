@@ -1,5 +1,11 @@
 import * as bitcoin from 'bitcoinjs-lib'
+import * as ecc from 'tiny-secp256k1'
+import { ECPairFactory } from 'ecpair'
 import { BitcoinHTLC } from './htlc.js'
+
+// Initialize ECC for ECPair usage
+bitcoin.initEccLib(ecc)
+const ECPair = ECPairFactory(ecc)
 
 export class SwapCoordinator {
   constructor(network = bitcoin.networks.testnet) {
@@ -15,8 +21,11 @@ export class SwapCoordinator {
    * @param {number} timeoutHours - Timeout in hours
    * @returns {Object} Swap configuration
    */
-  setupBTCtoETH(userKey, resolverPubKey, secretHash, timeoutHours = 24) {
+  setupBTCtoETH(userKey, resolverKeyOrPub, secretHash, timeoutHours = 24) {
     const locktime = Math.floor(Date.now() / 1000) + (timeoutHours * 3600)
+
+    const resolverKey = resolverKeyOrPub.privateKey ? resolverKeyOrPub : null
+    const resolverPubKey = resolverKey ? resolverKey.publicKey : resolverKeyOrPub
     
     // User is refunder, Resolver is redeemer
     const script = this.htlc.createHTLCScript(
@@ -26,17 +35,19 @@ export class SwapCoordinator {
       locktime
     )
 
-    const { address } = this.htlc.getHTLCAddress(script)
+    const { address, p2shAddress } = this.htlc.getHTLCAddress(script)
 
     return {
       direction: 'BTC->ETH',
       address,
+      p2shAddress,
       script,
       locktime,
       redeemer: 'resolver',
       refunder: 'user',
       userKey,
-      resolverPubKey
+      resolverPubKey,
+      resolverKey
     }
   }
 
@@ -59,11 +70,12 @@ export class SwapCoordinator {
       locktime
     )
 
-    const { address } = this.htlc.getHTLCAddress(script)
+    const { address, p2shAddress } = this.htlc.getHTLCAddress(script)
 
     return {
       direction: 'ETH->BTC',
       address,
+      p2shAddress,
       script,
       locktime,
       redeemer: 'user',
@@ -91,7 +103,7 @@ export class SwapCoordinator {
     
     if (swapConfig.redeemer === 'resolver') {
       // BTC->ETH: Resolver claims with secret
-      signingKey = bitcoin.ECPair.fromPrivateKey(Buffer.alloc(32, 1)) // Placeholder - resolver would provide real key
+      signingKey = swapConfig.resolverKey || ECPair.fromPrivateKey(Buffer.alloc(32, 1)) // Placeholder
       const signature = bitcoin.script.signature.encode(
         signingKey.sign(Buffer.alloc(32)), // Placeholder hash
         bitcoin.Transaction.SIGHASH_ALL
@@ -99,7 +111,7 @@ export class SwapCoordinator {
       witness = this.htlc.createRedeemWitness(signature, swapConfig.resolverPubKey, secret, swapConfig.script)
     } else {
       // ETH->BTC: User claims with secret
-      signingKey = swapConfig.userKey || bitcoin.ECPair.fromPrivateKey(Buffer.alloc(32, 1)) // Placeholder
+      signingKey = swapConfig.userKey || ECPair.fromPrivateKey(Buffer.alloc(32, 1)) // Placeholder
       const signature = bitcoin.script.signature.encode(
         signingKey.sign(Buffer.alloc(32)), // Placeholder hash
         bitcoin.Transaction.SIGHASH_ALL
@@ -136,7 +148,7 @@ export class SwapCoordinator {
     
     if (swapConfig.refunder === 'user') {
       // BTC->ETH: User gets refund
-      signingKey = swapConfig.userKey
+      signingKey = swapConfig.userKey || ECPair.fromPrivateKey(Buffer.alloc(32, 1))
       const signature = bitcoin.script.signature.encode(
         signingKey.sign(Buffer.alloc(32)), // Placeholder hash
         bitcoin.Transaction.SIGHASH_ALL
@@ -144,7 +156,7 @@ export class SwapCoordinator {
       witness = this.htlc.createRefundWitness(signature, swapConfig.userKey.publicKey, swapConfig.script)
     } else {
       // ETH->BTC: Resolver gets refund
-      signingKey = swapConfig.resolverKey
+      signingKey = swapConfig.resolverKey || ECPair.fromPrivateKey(Buffer.alloc(32, 1))
       const signature = bitcoin.script.signature.encode(
         signingKey.sign(Buffer.alloc(32)), // Placeholder hash
         bitcoin.Transaction.SIGHASH_ALL
