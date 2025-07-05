@@ -54,8 +54,8 @@ class CrossChainSwapTester {
     }
     
     // Setup Ethereum
-    if (ethSeed && infuraKey) {
-      const rpcUrl = this.config.networks.ethereum.rpcUrl.replace('YOUR_INFURA_KEY', infuraKey)
+    if (ethSeed && (infuraKey || process.env.SEPOLIA_RPC_URL)) {
+      const rpcUrl = process.env.SEPOLIA_RPC_URL || this.config.networks.ethereum.rpcUrl.replace('YOUR_INFURA_KEY', infuraKey)
       this.ethProvider = new ethers.JsonRpcProvider(rpcUrl)
       this.ethSigner = new ethers.Wallet(ethSeed, this.ethProvider)
       

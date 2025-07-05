@@ -62,8 +62,10 @@ export BTC_PRIVATE_KEY="your_bitcoin_private_key_hex"
 # Ethereum private key (32-byte hex) 
 export ETH_PRIVATE_KEY="your_ethereum_private_key_hex"
 
-# Infura API key for Sepolia
-export INFURA_KEY="your_infura_api_key"
+# Sepolia RPC URL (any provider)
+export SEPOLIA_RPC_URL="https://sepolia.infura.io/v3/your_key"
+# or export SEPOLIA_RPC_URL="https://eth-sepolia.g.alchemy.com/v2/your_key"
+# or export SEPOLIA_RPC_URL="https://rpc.sepolia.org"
 
 # For contract deployment
 export DEPLOYER="your_ethereum_private_key_hex"

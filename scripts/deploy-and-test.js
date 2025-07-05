@@ -6,18 +6,18 @@ async function deployAndTest() {
   console.log('🚀 Deploy Contracts and Run Cross-Chain Test')
   console.log('==============================================\n')
   
-  const INFURA_KEY = process.env.INFURA_KEY
+  const RPC_URL = process.env.SEPOLIA_RPC_URL || `https://sepolia.infura.io/v3/${process.env.INFURA_KEY}`
   const ETH_PRIVATE_KEY = process.env.ETH_PRIVATE_KEY
   
-  if (!INFURA_KEY || !ETH_PRIVATE_KEY) {
+  if (!RPC_URL || !ETH_PRIVATE_KEY) {
     console.log('❌ Missing environment variables:')
     console.log('   ETH_PRIVATE_KEY - Ethereum private key')
-    console.log('   INFURA_KEY - Infura API key')
+    console.log('   SEPOLIA_RPC_URL - Sepolia RPC endpoint (or INFURA_KEY)')
     return
   }
   
   // Setup provider and signer
-  const provider = new ethers.JsonRpcProvider(`https://sepolia.infura.io/v3/${INFURA_KEY}`)
+  const provider = new ethers.JsonRpcProvider(RPC_URL)
   const signer = new ethers.Wallet(ETH_PRIVATE_KEY, provider)
   
   console.log('📡 Connected to Sepolia')
