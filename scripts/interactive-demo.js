@@ -7,138 +7,114 @@ import { SwapCoordinator } from '../src/swap-coordinator.js'
 bitcoin.initEccLib(ecc)
 const ECPair = ECPairFactory(ecc)
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  prompt: '> '
-})
-
 const network = bitcoin.networks.testnet
 const coordinator = new SwapCoordinator(network)
 
-let swapConfig
-let secret
-let secretHash
-let userKey
-let resolverKey
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+})
 
-function setupBTCtoETH() {
-  userKey = ECPair.makeRandom({ network })
-  resolverKey = ECPair.makeRandom({ network })
-  const res = coordinator.htlc.generateSecret()
-  secret = res.secret
-  secretHash = res.hash
-  swapConfig = coordinator.setupBTCtoETH(userKey, resolverKey, secretHash, 24)
-  console.log('BTC->ETH HTLC created')
-  console.log('  Address:', swapConfig.p2shAddress)
-  console.log('  Explorer: https://mempool.space/testnet/address/' + swapConfig.p2shAddress)
-  console.log('  Secret Hash:', secretHash.toString('hex'))
-  console.log('  Secret     :', secret.toString('hex'))
+function ask(question, def = '') {
+  return new Promise(resolve => {
+    rl.question(question, answer => resolve(answer.trim() || def))
+  })
 }
 
-function setupETHtoBTC() {
-  userKey = ECPair.makeRandom({ network })
-  resolverKey = ECPair.makeRandom({ network })
-  const res = coordinator.htlc.generateSecret()
-  secret = res.secret
-  secretHash = res.hash
-  swapConfig = coordinator.setupETHtoBTC(userKey.publicKey, resolverKey, secretHash, 24)
-  console.log('ETH->BTC HTLC created')
-  console.log('  Address:', swapConfig.p2shAddress)
-  console.log('  Explorer: https://mempool.space/testnet/address/' + swapConfig.p2shAddress)
-  console.log('  Secret Hash:', secretHash.toString('hex'))
-  console.log('  Secret     :', secret.toString('hex'))
-}
+async function runDemo() {
+  console.log('\uD83D\uDD2E Guided Bitcoin HTLC Demo\n')
 
-function handleRedeem(args) {
-  if (!swapConfig) {
-    console.log('Setup a swap first with setup-btc or setup-eth')
-    return
-  }
-  if (args.length < 5) {
-    console.log('Usage: redeem <txid> <vout> <value> <address> <secret>')
-    return
-  }
-  const [txid, voutStr, valStr, addr, secretHex] = args
-  const vout = parseInt(voutStr)
-  const value = parseInt(valStr)
-  const sec = Buffer.from(secretHex, 'hex')
-  try {
-    const tx = coordinator.createRedeemTransaction(
-      swapConfig,
-      txid,
-      vout,
-      value,
-      addr,
-      sec,
-      1000
-    )
-    console.log('Redeem TX:', tx)
-  } catch (e) {
-    console.log('Error creating redeem transaction:', e.message)
-  }
-}
+  await ask('Press enter to set up the HTLC...')
 
-function handleRefund(args) {
-  if (!swapConfig) {
-    console.log('Setup a swap first with setup-btc or setup-eth')
-    return
-  }
-  if (args.length < 4) {
-    console.log('Usage: refund <txid> <vout> <value> <address>')
-    return
-  }
-  const [txid, voutStr, valStr, addr] = args
-  const vout = parseInt(voutStr)
-  const value = parseInt(valStr)
-  try {
-    const tx = coordinator.createRefundTransaction(
-      swapConfig,
-      txid,
-      vout,
-      value,
-      addr,
-      1000
-    )
-    console.log('Refund TX:', tx)
-  } catch (e) {
-    console.log('Error creating refund transaction:', e.message)
-  }
-}
+  const userKey = process.env.BTC_PRIVATE_KEY
+    ? ECPair.fromPrivateKey(Buffer.from(process.env.BTC_PRIVATE_KEY, 'hex'), { network })
+    : ECPair.makeRandom({ network })
 
-console.log('Interactive Bitcoin HTLC Demo')
-console.log('Commands:')
-console.log('  setup-btc         Create BTC->ETH HTLC')
-console.log('  setup-eth         Create ETH->BTC HTLC')
-console.log('  redeem <txid> <vout> <value> <address> <secret>')
-console.log('  refund <txid> <vout> <value> <address>')
-console.log('  exit')
-rl.prompt()
+  const resolverKey = ECPair.makeRandom({ network })
+  const { secret, hash: secretHash } = coordinator.htlc.generateSecret()
+  const lockSeconds = 30
+  const swap = coordinator.setupBTCtoETH(userKey, resolverKey, secretHash, lockSeconds / 3600)
 
-rl.on('line', line => {
-  const [command, ...args] = line.trim().split(/\s+/)
-  switch(command) {
-    case 'setup-btc':
-      setupBTCtoETH()
-      break
-    case 'setup-eth':
-      setupETHtoBTC()
-      break
-    case 'redeem':
-      handleRedeem(args)
-      break
-    case 'refund':
-      handleRefund(args)
-      break
-    case 'exit':
-      rl.close()
-      return
-    default:
-      console.log('Unknown command')
-  }
+  console.log('\uD83D\uDD10 HTLC Address:', swap.p2shAddress)
+  console.log('🔗 Explorer:', `https://mempool.space/testnet/address/${swap.p2shAddress}`)
+  console.log('\uD83D\uDD11 Secret Hash:', secretHash.toString('hex'))
+  console.log('\uD83D\uDDDD Secret     :', secret.toString('hex'))
+  console.log('\u23F0 Timeout     :', lockSeconds, 'seconds from now\n')
+
+  console.log('Step 1️⃣  Send BTC to the address above.')
+  await ask('Press enter once funded...')
+
+  const fundingTxId = await ask('Funding TXID: ')
+  const fundingVout = parseInt(await ask('Output index [0]: ', '0'))
+  const fundingValue = parseInt(await ask('Amount in satoshis [10000]: ', '10000'))
+
+  console.log('\nStep 2️⃣  Waiting for timelock. Type "claim" to claim early.')
   rl.prompt()
+
+  const endTime = Date.now() + lockSeconds * 1000
+  const timer = setInterval(() => {
+    const diff = Math.max(0, Math.round((endTime - Date.now()) / 1000))
+    const emoji = diff % 2 === 0 ? '\u231B' : '\u23F3'
+    process.stdout.write(`\r${emoji} ${diff}s remaining `)
+    if (diff <= 0) {
+      clearInterval(timer)
+      console.log('\n\uD83D\uDD12 Timelock passed. Creating refund transaction...')
+      doRefund()
+    }
+  }, 1000)
+
+  rl.on('line', line => {
+    if (line.trim().toLowerCase() === 'claim') {
+      clearInterval(timer)
+      doClaim()
+    } else {
+      rl.prompt()
+    }
+  })
+
+  function doClaim() {
+    const destKey = ECPair.makeRandom({ network })
+    const destAddr = bitcoin.payments.p2wpkh({ pubkey: destKey.publicKey, network }).address
+    console.log('\n\uD83D\uDD27 Creating redeem transaction...')
+    const tx = coordinator.createRedeemTransaction(
+      swap,
+      fundingTxId,
+      fundingVout,
+      fundingValue,
+      destAddr,
+      secret,
+      1000
+    )
+    console.log('\u2705 Redeem TX:', tx.slice(0, 60) + '...')
+    console.log('\uD83D\uDCB5 Destination:', destAddr)
+    askReturn()
+  }
+
+  function doRefund() {
+    const refundAddr = bitcoin.payments.p2wpkh({ pubkey: userKey.publicKey, network }).address
+    const tx = coordinator.createRefundTransaction(
+      swap,
+      fundingTxId,
+      fundingVout,
+      fundingValue,
+      refundAddr,
+      1000
+    )
+    console.log('\u2705 Refund TX:', tx.slice(0, 60) + '...')
+    console.log('\uD83D\uDCB5 Destination:', refundAddr)
+    askReturn()
+  }
+
+  function askReturn() {
+    rl.question('\n\u27A1\uFE0F When finished testing, send the BTC back to your wallet. Press enter to exit.', () => {
+      console.log('Thanks for trying the demo!')
+      rl.close()
+    })
+  }
+}
+
+runDemo().catch(err => {
+  console.error('Error:', err.message)
+  rl.close()
 })
 
-rl.on('close', () => {
-  console.log('Goodbye!')
-})
