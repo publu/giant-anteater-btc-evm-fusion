@@ -231,14 +231,8 @@ Time →  [Dst Withdrawal] [Dst Public] [Src Withdrawal] [Src Public] [Cancellat
 
 ### Unit Tests
 ```bash
-# Bitcoin HTLC tests
+# Run all unit tests (BTC HTLC, Bitcoin SDK, Ethereum contracts)
 npm test
-
-# Bitcoin SDK tests
-npm run test:bitcoin-sdk
-
-# Ethereum contract tests  
-cd evm-crossing && npm test
 ```
 
 ### Integration Tests

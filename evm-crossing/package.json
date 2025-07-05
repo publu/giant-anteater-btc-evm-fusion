@@ -1,5 +1,11 @@
 {
   "name": "hardhat-project",
+  "scripts": {
+    "test": "npx hardhat test",
+    "deploy:sepolia": "npx hardhat run scripts/deploy-with-storage.ts --network sepolia",
+    "deploy:local": "npx hardhat run scripts/deploy-with-storage.ts --network localhost",
+    "test:factory": "npx hardhat test test/MinimalEscrowFactory.test.ts --network sepolia"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.2",
     "@nomicfoundation/hardhat-ethers": "^3.0.4",
@@ -26,10 +32,7 @@
     "tailwindcss": "^4.1.4",
     "ts-node": "^10.9.1",
     "typechain": "^8.3.2",
-    "test": "vitest",
-    "deploy:sepolia": "npx hardhat run scripts/deploy-with-storage.ts --network sepolia",
-    "deploy:local": "npx hardhat run scripts/deploy-with-storage.ts --network localhost",
-    "test:factory": "npx hardhat test test/MinimalEscrowFactory.test.ts --network sepolia"
+    "vitest": "^0.34.6"
   },
   "dependencies": {
     "@1inch/solidity-utils": "github:1inch/solidity-utils",
