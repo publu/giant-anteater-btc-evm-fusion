@@ -1,5 +1,5 @@
 import * as bitcoin from 'bitcoin-sdk-js'
-import { createHash } from 'crypto'
+import createKeccakHash from 'keccak'
 import { BitcoinRPC } from './bitcoin-rpc.js'
 
 /**
@@ -145,7 +145,7 @@ export class BitcoinSDKHTLC {
    */
   generateSecret() {
     const secret = Buffer.from(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15))
-    const hash = createHash('sha256').update(secret.toString('hex'), 'hex').digest('hex')
+    const hash = createKeccakHash('keccak256').update(secret.toString('hex'), 'hex').digest('hex')
 
     return {
       secret: secret.toString('hex'),
