@@ -3,12 +3,14 @@ import * as bitcoin from 'bitcoinjs-lib'
 import * as ecc from 'tiny-secp256k1'
 import { ECPairFactory } from 'ecpair'
 import { SwapCoordinator } from '../src/swap-coordinator.js'
+import { BitcoinRPC } from '../src/bitcoin-rpc.js'
 
 bitcoin.initEccLib(ecc)
 const ECPair = ECPairFactory(ecc)
 
 const network = bitcoin.networks.testnet
 const coordinator = new SwapCoordinator(network)
+const rpc = new BitcoinRPC(process.env.BTC_RPC || 'https://mempool.space/testnet/api')
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -61,14 +63,17 @@ async function main() {
   rl.on('line', line => {
     if (line.trim().toLowerCase() === 'claim') {
       clearInterval(timer)
-      claimFunds(secret, swap)
+      claimFunds(secret, swap).catch(err => {
+        console.error('Error:', err.message)
+        rl.close()
+      })
     } else {
       rl.prompt()
     }
   })
 }
 
-function claimFunds(secret, swap) {
+async function claimFunds(secret, swap) {
   const destKey = ECPair.makeRandom({ network })
   const destAddr = bitcoin.payments.p2wpkh({ pubkey: destKey.publicKey, network }).address
   console.log('\n\uD83D\uDD27 Claiming funds with secret...')
@@ -82,6 +87,17 @@ function claimFunds(secret, swap) {
     1000
   )
   console.log('\u2705 Example Redeem TX:', tx.slice(0, 60) + '...')
+  const broadcast = await new Promise(res => {
+    rl.question('Broadcast transaction to testnet? [y/N]: ', ans => res(ans.trim().toLowerCase() === 'y'))
+  })
+  if (broadcast) {
+    try {
+      const txid = await rpc.broadcastTransaction(tx)
+      console.log('\uD83D\uDE80 Broadcast TXID:', txid)
+    } catch (err) {
+      console.log('\u274C Broadcast failed:', err.message)
+    }
+  }
   console.log('\uD83D\uDCB5 Claimed to address:', destAddr)
   askReturn()
 }
