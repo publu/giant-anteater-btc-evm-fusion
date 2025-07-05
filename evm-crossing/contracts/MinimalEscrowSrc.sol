@@ -56,6 +56,21 @@ contract MinimalEscrowSrc is MinimalEscrow {
         _withdrawTo(secret, immutables.taker.get(), immutables);
     }
 
+    /// @notice Alias to {withdraw} for compatibility with off-chain flows.
+    function claim(bytes32 secret, Immutables calldata immutables) external {
+        withdraw(secret, immutables);
+    }
+
+    /// @notice Alias to {publicWithdraw} for compatibility with off-chain flows.
+    function publicClaim(bytes32 secret, Immutables calldata immutables) external {
+        publicWithdraw(secret, immutables);
+    }
+
+    /// @notice Alias to {withdrawTo} for compatibility with off-chain flows.
+    function claimTo(bytes32 secret, address target, Immutables calldata immutables) external {
+        withdrawTo(secret, target, immutables);
+    }
+
     /**
      * @notice Withdraw funds to a specified target.
      * @param secret The secret that unlocks the escrow.

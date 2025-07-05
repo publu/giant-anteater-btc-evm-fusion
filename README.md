@@ -174,6 +174,25 @@ console.log('Send BTC to:', swapConfig.address)
 
 ### Complete Cross-Chain Flow
 
+The escrows follow a secret-based workflow compatible with our BTC and ETH
+contracts:
+
+**BTC → ETH (secret held by BTC user)**
+1. Maker (Bob) generates a random `secret` and publishes the Keccak256 hash as
+   the `hashlock` together with his Bitcoin address.
+2. Taker (Alice) accepts off‑chain and waits for Bob to lock BTC to a P2SH
+   script using her key and the SHA256 of `secret`.
+3. Once the Bitcoin funding is detected, Alice deploys the destination escrow on
+   Ethereum with the same `hashlock`.
+4. Bob calls `claim(secret)` on the ETH escrow which emits the secret on-chain.
+5. Alice reads the revealed secret and uses it to redeem the BTC HTLC.
+
+**ETH → BTC (secret held by ETH user)**
+1. Alice creates the ETH escrow with `hashlock = Keccak256(secret)`.
+2. Bob observes the escrow and funds a Bitcoin HTLC with SHA256(`secret`).
+3. Alice claims the BTC, revealing the secret on the Bitcoin chain.
+4. Bob extracts the secret and calls `claim(secret)` on the ETH escrow.
+
 ### BTC → ETH
 1. **Setup**: User and Resolver agree on swap terms
 2. **Lock BTC**: User locks BTC in Bitcoin HTLC with secret hash
