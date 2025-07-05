@@ -22,6 +22,7 @@
   "dependencies": {
     "bitcoinjs-lib": "^6.1.5",
     "ecpair": "^2.1.0",
+    "keccak": "^3.0.4",
     "tiny-secp256k1": "^2.2.4"
   },
   "devDependencies": {

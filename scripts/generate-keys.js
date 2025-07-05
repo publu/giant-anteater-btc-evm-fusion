@@ -4,6 +4,7 @@ import * as ecc from 'tiny-secp256k1'
 import { randomBytes, createHash } from 'crypto'
 import fs from 'fs'
 import path from 'path'
+import { keccak256 } from 'keccak'
 
 // Initialize ECC
 bitcoin.initEccLib(ecc)
@@ -65,18 +66,29 @@ class KeyGenerator {
   generateEthereumKey(privateKey = null) {
     const privKey = privateKey || this.generatePrivateKey()
     
-    // Use secp256k1 for Ethereum key derivation
+    // Generate Ethereum key using secp256k1
     const keyPair = ECPair.fromPrivateKey(privKey)
-    const publicKey = keyPair.publicKey.slice(1) // Remove 0x04 prefix for uncompressed key
     
-    // Ethereum address is last 20 bytes of keccak256(publicKey)
-    // Simple keccak256 implementation using Node.js crypto
-    const keccak256Hash = createHash('sha3-256').update(publicKey).digest()
-    const address = '0x' + keccak256Hash.slice(-20).toString('hex')
+    // Get uncompressed public key (remove 0x04 prefix)
+    const publicKeyFull = keyPair.publicKey
+    let publicKeyUncompressed
+    
+    if (publicKeyFull.length === 33) {
+      // Compressed key - need to decompress
+      const point = ecc.pointFromScalar(privKey, false) // false = uncompressed
+      publicKeyUncompressed = point.slice(1) // Remove 0x04 prefix
+    } else {
+      // Already uncompressed
+      publicKeyUncompressed = publicKeyFull.slice(1) // Remove 0x04 prefix
+    }
+    
+    // Ethereum address is last 20 bytes of keccak256(uncompressed_public_key)
+    const keccakHash = keccak256(publicKeyUncompressed)
+    const address = '0x' + keccakHash.slice(-20).toString('hex')
 
     return {
       privateKey: privKey.toString('hex'),
-      publicKey: publicKey.toString('hex'),
+      publicKey: publicKeyUncompressed.toString('hex'),
       address: address,
       checksumAddress: this.toChecksumAddress(address),
       network: 'sepolia'
@@ -90,7 +102,7 @@ class KeyGenerator {
    */
   toChecksumAddress(address) {
     const addr = address.toLowerCase().replace('0x', '')
-    const hash = createHash('sha3-256').update(addr).digest('hex')
+    const hash = keccak256(addr).toString('hex')
     let checksumAddr = '0x'
     
     for (let i = 0; i < addr.length; i++) {
@@ -367,6 +379,17 @@ async function main() {
       }
       break
       
+    case 'test-eth':
+      // Test with a known private key to verify correctness
+      const testKey = '4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318'
+      const testResult = generator.generateEthereumKey(Buffer.from(testKey, 'hex'))
+      console.log('🧪 Testing with known private key:')
+      console.log('   Private Key:', testKey)
+      console.log('   Generated Address:', testResult.checksumAddress)
+      console.log('   Expected Address: 0x2c7536E3605D9C16a7a3D7b1898e529396a65c23')
+      console.log('   Match:', testResult.checksumAddress.toLowerCase() === '0x2c7536E3605D9C16a7a3D7b1898e529396a65c23'.toLowerCase() ? '✅' : '❌')
+      break
+      
     case 'env-only':
       const envKeySet = generator.generateTestKeySet()
       generator.generateEnvFile(envKeySet)
@@ -383,6 +406,7 @@ async function main() {
       console.log('  from-seed <phrase>     - Generate from seed phrase')
       console.log('  validate <private_key> - Validate a private key')
       console.log('  env-only              - Generate only .env file')
+      console.log('  test-eth              - Test Ethereum key generation')
       console.log('')
       console.log('Examples:')
       console.log('  npm run generate-keys')
