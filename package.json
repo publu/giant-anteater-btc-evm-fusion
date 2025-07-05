@@ -11,7 +11,11 @@
     "example:btc-to-eth": "node examples/btc-to-eth.js",
     "example:eth-to-btc": "node examples/eth-to-btc.js",
     "test:cross-chain": "node scripts/cross-chain-test.js",
-    "deploy:test": "node scripts/deploy-and-test.js"
+    "deploy:test": "node scripts/deploy-and-test.js",
+    "contracts:status": "node scripts/load-contracts.js status",
+    "contracts:latest": "node scripts/load-contracts.js latest",
+    "contracts:all": "node scripts/load-contracts.js all",
+    "deploy:quick": "node scripts/quick-deploy.js"
   },
   "dependencies": {
     "bitcoinjs-lib": "^6.1.5",

@@ -73,6 +73,9 @@ export ETHERSCAN_API="your_etherscan_api_key"
 ### Quick Start
 
 ```bash
+# Quick deployment and setup
+npm run deploy:quick
+
 # Run Bitcoin-only demo
 npm start
 
@@ -94,20 +97,27 @@ npm test
 
 ### Cross-Chain Testing
 
-1. **Deploy Contracts:**
+1. **Quick Deploy (Recommended):**
+   ```bash
+   npm run deploy:quick
+   ```
+
+2. **Or Manual Deploy:**
    ```bash
    cd evm-crossing
    npm run deploy:sepolia
    ```
 
-2. **Update Configuration:**
-   Edit `config/test-config.json` with deployed contract addresses
+3. **Check Deployment Status:**
+   ```bash
+   npm run contracts:status
+   ```
 
-3. **Fund Test Accounts:**
+4. **Fund Test Accounts:**
    - Get Sepolia ETH from faucets
    - Get Bitcoin testnet from faucets
 
-4. **Run Cross-Chain Test:**
+5. **Run Cross-Chain Test:**
    ```bash
    npm run test:cross-chain
    ```

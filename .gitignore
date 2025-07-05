@@ -1,3 +1,8 @@
 node_modules
 .env
 .DS_Store
+
+# Deployment records (keep latest for easy access)
+deployments/*
+!deployments/.gitkeep
+!deployments/*-latest.json

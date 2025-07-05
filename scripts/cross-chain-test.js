@@ -5,6 +5,7 @@ import { ethers } from 'ethers'
 import { SwapCoordinator } from '../src/swap-coordinator.js'
 import fs from 'fs'
 import path from 'path'
+import { loadTestConfig, checkDeploymentStatus } from './load-contracts.js'
 
 // Initialize ECC
 bitcoin.initEccLib(ecc)
@@ -12,7 +13,13 @@ const ECPair = ECPairFactory(ecc)
 
 class CrossChainSwapTester {
   constructor() {
-    this.config = JSON.parse(fs.readFileSync('config/test-config.json', 'utf8'))
+    // Check if contracts are deployed first
+    const status = checkDeploymentStatus()
+    if (!status.isReady) {
+      throw new Error(`Contracts not ready: ${status.error}. Run deployment first: cd evm-crossing && npm run deploy:sepolia`)
+    }
+    
+    this.config = loadTestConfig()
     this.btcNetwork = bitcoin.networks.testnet
     this.swapCoordinator = new SwapCoordinator(this.btcNetwork)
     
@@ -25,6 +32,16 @@ class CrossChainSwapTester {
 
   async initialize(btcSeed, ethSeed, infuraKey) {
     console.log('🔧 Initializing Cross-Chain Swap Tester...\n')
+    
+    // Verify contracts are deployed
+    if (!this.config.contracts.factoryAddress) {
+      throw new Error('Factory address not found in config. Run deployment first.')
+    }
+    
+    console.log('📋 Using deployed contracts:')
+    console.log('   Factory:', this.config.contracts.factoryAddress)
+    console.log('   Test Token:', this.config.contracts.testToken)
+    console.log('')
     
     // Setup Bitcoin
     if (btcSeed) {

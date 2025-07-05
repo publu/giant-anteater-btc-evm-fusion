@@ -27,7 +27,8 @@
     "ts-node": "^10.9.1",
     "typechain": "^8.3.2",
     "test": "vitest",
-    "deploy:sepolia": "npx hardhat run scripts/initEVM.ts --network sepolia",
+    "deploy:sepolia": "npx hardhat run scripts/deploy-with-storage.ts --network sepolia",
+    "deploy:local": "npx hardhat run scripts/deploy-with-storage.ts --network localhost",
     "test:factory": "npx hardhat test test/MinimalEscrowFactory.test.ts --network sepolia"
   },
   "dependencies": {
