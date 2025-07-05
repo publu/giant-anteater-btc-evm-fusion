@@ -1,144 +1,68 @@
-import readline from 'readline'
-import * as bitcoin from 'bitcoinjs-lib'
-import * as ecc from 'tiny-secp256k1'
-import { ECPairFactory } from 'ecpair'
-import { SwapCoordinator } from '../src/swap-coordinator.js'
-import { BitcoinRPC } from "../src/bitcoin-rpc.js"
+import * as bitcoin from 'bitcoin-sdk-js'
 
-bitcoin.initEccLib(ecc)
-const ECPair = ECPairFactory(ecc)
-
-const network = bitcoin.networks.testnet
-const coordinator = new SwapCoordinator(network)
-const rpc = new BitcoinRPC(process.env.BTC_RPC || "https://mempool.space/testnet/api")
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-})
-
-function ask(question, def = '') {
-  return new Promise(resolve => {
-    rl.question(question, answer => resolve(answer.trim() || def))
-  })
+// use private key from environment or generate new key pair
+let privkey1 = process.env.BTC_PRIVATE_KEY
+let pubkey1
+if (privkey1) {
+  pubkey1 = await bitcoin.wallet.getPublicKey(privkey1)
+} else {
+  const keyPair = await bitcoin.wallet.generateKeyPair()
+  privkey1 = keyPair.privateKey
+  pubkey1 = keyPair.publicKey
 }
 
-async function runDemo() {
-  console.log('\uD83D\uDD2E Guided Bitcoin HTLC Demo\n')
+// second key pair for the contract
+const { publicKey: pubkey2, privateKey: privkey2 } = await bitcoin.wallet.generateKeyPair()
 
-  await ask('Press enter to set up the HTLC...')
+// build HTLC script
+const HTLC = bitcoin.Opcode.OP_IF +
+  (await bitcoin.script.generateTimeLockScript(2576085)) +
+  (await bitcoin.data.pushData(pubkey1)) +
+  pubkey1 +
+  bitcoin.Opcode.OP_ELSE +
+  (await bitcoin.script.generateHashLockScript('abcdef')) +
+  (await bitcoin.data.pushData(pubkey2)) +
+  pubkey2 +
+  bitcoin.Opcode.OP_ENDIF +
+  bitcoin.Opcode.OP_CHECKSIG
 
-  const userKey = process.env.BTC_PRIVATE_KEY
-    ? ECPair.fromPrivateKey(Buffer.from(process.env.BTC_PRIVATE_KEY, 'hex'), { network })
-    : ECPair.makeRandom({ network })
+// p2wsh address for funding
+const toAddress = await bitcoin.address.generateScriptAddress(HTLC)
+console.log('HTLC address:', toAddress)
 
-  const resolverKey = ECPair.makeRandom({ network })
-  const { secret, hash: secretHash } = coordinator.htlc.generateSecret()
-  const lockSeconds = 30
-  const swap = coordinator.setupBTCtoETH(userKey, resolverKey, secretHash, lockSeconds / 3600)
+// optional transaction creation if env vars provided
+if (process.env.TX_ID && process.env.TX_VALUE) {
+  const txId = process.env.TX_ID
+  const value = Number(process.env.TX_VALUE)
+  const fee = Number(process.env.TX_FEE || 1000)
 
-  console.log('\uD83D\uDD10 HTLC Address:', swap.p2shAddress)
-  console.log('🔗 Explorer:', `https://mempool.space/testnet/address/${swap.p2shAddress}`)
-  console.log('\uD83D\uDD11 Secret Hash:', secretHash.toString('hex'))
-  console.log('\uD83D\uDDDD Secret     :', secret.toString('hex'))
-  console.log('\u23F0 Timeout     :', lockSeconds, 'seconds from now\n')
+  const tx = new bitcoin.Transaction()
+  await tx.addInput({ txHash: txId, index: 0, value })
+  await tx.addOutput({ address: toAddress, value: value - fee })
+  await tx.setLocktime(2576085)
 
-  console.log('Step 1️⃣  Send BTC to the address above.')
-  await ask('Press enter once funded...')
+  // spend using OP_IF branch
+  await tx.signInputByScriptSig([
+    await bitcoin.crypto.sign(
+      await tx.getInputHashToSign(HTLC, 0),
+      privkey1
+    ),
+    '01',
+    HTLC
+  ], 0)
 
-  const fundingTxId = await ask('Funding TXID: ')
-  const fundingVout = parseInt(await ask('Output index [0]: ', '0'))
-  const fundingValue = parseInt(await ask('Amount in satoshis [10000]: ', '10000'))
+  // To spend with OP_ELSE branch instead, comment the block above
+  // and uncomment the block below:
+  // await tx.signInputByScriptSig([
+  //   await bitcoin.crypto.sign(
+  //     await tx.getInputHashToSign(HTLC, 0),
+  //     privkey2
+  //   ),
+  //   'abcdef',
+  //   '',
+  //   HTLC
+  // ], 0)
 
-  console.log('\nStep 2️⃣  Waiting for timelock. Type "claim" to claim early.')
-  rl.prompt()
-
-  const endTime = Date.now() + lockSeconds * 1000
-  const timer = setInterval(() => {
-    const diff = Math.max(0, Math.round((endTime - Date.now()) / 1000))
-    const emoji = diff % 2 === 0 ? '\u231B' : '\u23F3'
-    process.stdout.write(`\r${emoji} ${diff}s remaining `)
-    if (diff <= 0) {
-      clearInterval(timer)
-      console.log('\n\uD83D\uDD12 Timelock passed. Creating refund transaction...')
-      doRefund().catch(err => {
-        console.error('Error:', err.message)
-        rl.close()
-      })
-    }
-  }, 1000)
-
-  rl.on('line', line => {
-    if (line.trim().toLowerCase() === 'claim') {
-      clearInterval(timer)
-      doClaim().catch(err => {
-        console.error('Error:', err.message)
-        rl.close()
-      })
-    } else {
-      rl.prompt()
-    }
-  })
-
-  async function doClaim() {
-    const destAddr = 'mnYZWwsHPGUVpRsHk78Rp4dsDn2u412R27'
-    console.log('\n\uD83D\uDD27 Creating redeem transaction...')
-    const tx = coordinator.createRedeemTransaction(
-      swap,
-      fundingTxId,
-      fundingVout,
-      fundingValue,
-      destAddr,
-      secret,
-      1000
-    )
-    console.log('\u2705 Redeem TX:', tx.slice(0, 60) + '...')
-    const broadcast = await ask('Broadcast transaction to testnet? [y/N]: ')
-    if (broadcast.toLowerCase() === 'y') {
-      try {
-        const txid = await rpc.broadcastTransaction(tx)
-        console.log('\uD83D\uDE80 Broadcast TXID:', txid)
-      } catch (err) {
-        console.log('\u274C Broadcast failed:', err.message)
-      }
-    }
-    console.log('\uD83D\uDCB5 Destination:', destAddr)
-    askReturn()
-  }
-
-  async function doRefund() {
-    const refundAddr = bitcoin.payments.p2wpkh({ pubkey: userKey.publicKey, network }).address
-    const tx = coordinator.createRefundTransaction(
-      swap,
-      fundingTxId,
-      fundingVout,
-      fundingValue,
-      refundAddr,
-      1000
-    )
-    console.log('\u2705 Refund TX:', tx.slice(0, 60) + '...')
-    const broadcast = await ask('Broadcast transaction to testnet? [y/N]: ')
-    if (broadcast.toLowerCase() === 'y') {
-      try {
-        const txid = await rpc.broadcastTransaction(tx)
-        console.log('\uD83D\uDE80 Broadcast TXID:', txid)
-      } catch (err) {
-        console.log('\u274C Broadcast failed:', err.message)
-      }
-    }
-    console.log('\uD83D\uDCB5 Destination:', refundAddr)
-    askReturn()
-  }
-
-  function askReturn() {
-    rl.question('\n\u27A1\uFE0F When finished testing, send the BTC back to your wallet. Press enter to exit.', () => {
-      console.log('Thanks for trying the demo!')
-      rl.close()
-    })
-  }
+  const txToBroadcast = await tx.getSignedHex()
+  console.log('Signed TX:', txToBroadcast)
 }
-
-runDemo().catch(err => {
-  console.error('Error:', err.message)
-  rl.close()
-})
