@@ -75,11 +75,17 @@ export ETHERSCAN_API="your_etherscan_api_key"
 ### Quick Start
 
 ```bash
+# Generate keys and environment
+npm run generate-keys
+
 # Quick deployment and setup
 npm run deploy:quick
 
 # Run Bitcoin-only demo
 npm start
+
+# Run Bitcoin SDK demo (new implementation)
+npm run example:bitcoin-sdk
 
 # Run Bitcoin examples
 npm run example:btc-to-eth
@@ -127,6 +133,17 @@ npm test
 ### BTC → ETH Swap
 
 ```javascript
+// Using bitcoin-sdk-js (new)
+import { BitcoinSDKCoordinator } from './src/bitcoin-sdk-coordinator.js'
+
+const coordinator = new BitcoinSDKCoordinator('testnet')
+const { secret, hash } = coordinator.htlc.generateSecret()
+
+// Setup swap
+const swapConfig = await coordinator.setupBTCtoETH(userPrivateKey, resolverPubKey, hash, 24)
+console.log('Send BTC to:', swapConfig.address)
+
+// Original implementation
 import { SwapCoordinator } from './src/swap-coordinator.js'
 import * as bitcoin from 'bitcoinjs-lib'
 
@@ -198,6 +215,9 @@ Time →  [Dst Withdrawal] [Dst Public] [Src Withdrawal] [Src Public] [Cancellat
 # Bitcoin HTLC tests
 npm test
 
+# Bitcoin SDK tests
+npm run test:bitcoin-sdk
+
 # Ethereum contract tests  
 cd evm-crossing && npm test
 ```
@@ -238,6 +258,7 @@ Edit `config/test-config.json` to customize:
 
 ### BitcoinHTLC
 
+**Original Implementation (bitcoinjs-lib):**
 - `createHTLCScript(redeemerPubKey, refunderPubKey, secretHash, locktime)`
 - `getHTLCAddress(script)`
 - `createRedeemWitness(signature, pubKey, secret, script)`
@@ -245,9 +266,27 @@ Edit `config/test-config.json` to customize:
 - `generateSecret()`
 - `verifySecret(secret, hash)`
 
+**New Implementation (bitcoin-sdk-js):**
+- `generateKeyPair()`
+- `createHTLCScript(pubkey1, pubkey2, secretHash, locktime)`
+- `getHTLCAddress(htlcScript)`
+- `createRedeemTransaction(config)`
+- `createRefundTransaction(config)`
+- `generateSecret()`
+- `checkHTLCStatus(address)`
+- `broadcastTransaction(txHex)`
+
 ### SwapCoordinator
 
+**Original Implementation:**
 - `setupBTCtoETH(userKey, resolverPubKey, secretHash, timeoutHours)`
 - `setupETHtoBTC(userPubKey, resolverKey, secretHash, timeoutHours)`
 - `createRedeemTransaction(swapConfig, fundingTxId, ...)`
 - `createRefundTransaction(swapConfig, fundingTxId, ...)`
+
+**New Implementation (BitcoinSDKCoordinator):**
+- `setupBTCtoETH(userPrivateKey, resolverPublicKey, secretHash, timeoutHours)`
+- `setupETHtoBTC(userPublicKey, resolverPrivateKey, secretHash, timeoutHours)`
+- `createRedeemTransaction(swapConfig, fundingTxId, ...)`
+- `createRefundTransaction(swapConfig, fundingTxId, ...)`
+- `monitorHTLC(swapConfig)`

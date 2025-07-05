@@ -8,8 +8,10 @@
   "scripts": {
     "start": "node index.js",
     "test": "node test/test.js",
+    "test:bitcoin-sdk": "node test/test-bitcoin-sdk.js",
     "example:btc-to-eth": "node examples/btc-to-eth.js",
     "example:eth-to-btc": "node examples/eth-to-btc.js",
+    "example:bitcoin-sdk": "node examples/bitcoin-sdk-demo.js",
     "test:cross-chain": "node scripts/cross-chain-test.js",
     "deploy:test": "node scripts/deploy-and-test.js",
     "test:bitcoin-rpc": "node -e \"import('./src/bitcoin-rpc.js').then(m => m.testBitcoinRPC())\"",
@@ -22,12 +24,13 @@
     "timer-demo": "node scripts/htlc-timer-demo.js"
   },
   "dependencies": {
+    "bitcoin-sdk-js": "^1.0.1",
     "bitcoinjs-lib": "^6.1.5",
     "ecpair": "^2.1.0",
-    "keccak": "^3.0.4",
-    "tiny-secp256k1": "^2.2.4",
     "ethers": "^6.13.7",
-    "node-fetch": "^3.3.2"
+    "keccak": "^3.0.4",
+    "node-fetch": "^3.3.2",
+    "tiny-secp256k1": "^2.2.4"
   },
   "devDependencies": {
     "chalk": "^5.3.0"
