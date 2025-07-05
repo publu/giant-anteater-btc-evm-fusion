@@ -1,4 +1,5 @@
 import * as bitcoin from 'bitcoin-sdk-js'
+import createKeccakHash from 'keccak'
 import { BitcoinRPC } from './bitcoin-rpc.js'
 
 /**
@@ -32,8 +33,13 @@ export class BitcoinSDKHTLC {
    * @returns {Promise<string>} HTLC script
    */
   async createHTLCScript(pubkey1, pubkey2, secretHash, locktime) {
+    const lockHex = await bitcoin.encode.scriptNum(locktime)
+    const lockPush = locktime <= 16 ? '' : await bitcoin.data.pushData(lockHex)
+    const timeLockScript =
+      lockPush + lockHex + bitcoin.Opcode.OP_CHECKLOCKTIMEVERIFY + bitcoin.Opcode.OP_DROP
+
     const HTLC = bitcoin.Opcode.OP_IF +
-      (await bitcoin.script.generateTimeLockScript(locktime)) +
+      timeLockScript +
       (await bitcoin.data.pushData(pubkey1)) +
       pubkey1 +
       bitcoin.Opcode.OP_ELSE +
@@ -139,11 +145,11 @@ export class BitcoinSDKHTLC {
    */
   generateSecret() {
     const secret = Buffer.from(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15))
-    const hash = bitcoin.crypto.sha256(secret.toString('hex'))
-    
+    const hash = createKeccakHash('keccak256').update(secret.toString('hex'), 'hex').digest('hex')
+
     return {
       secret: secret.toString('hex'),
-      hash: hash
+      hash
     }
   }
 

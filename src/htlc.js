@@ -1,6 +1,7 @@
 import * as bitcoin from 'bitcoinjs-lib'
 import * as ecc from 'tiny-secp256k1'
 import { randomBytes } from 'crypto'
+import createKeccakHash from 'keccak'
 
 // Initialize ECC library
 bitcoin.initEccLib(ecc)
@@ -167,7 +168,7 @@ export class BitcoinHTLC {
    */
   generateSecret() {
     const secret = randomBytes(32)
-    const hash = bitcoin.crypto.sha256(secret)
+    const hash = createKeccakHash('keccak256').update(secret).digest()
     
     return { secret, hash }
   }
@@ -179,6 +180,6 @@ export class BitcoinHTLC {
    * @returns {boolean} True if valid
    */
   verifySecret(secret, hash) {
-    return bitcoin.crypto.sha256(secret).equals(hash)
+    return createKeccakHash('keccak256').update(secret).digest().equals(hash)
   }
 }
