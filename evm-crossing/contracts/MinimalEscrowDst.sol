@@ -54,6 +54,16 @@ contract MinimalEscrowDst is MinimalEscrow {
         _withdraw(secret, immutables);
     }
 
+    /// @notice Alias to {withdraw} for compatibility with off-chain flows.
+    function claim(bytes32 secret, Immutables calldata immutables) external {
+        withdraw(secret, immutables);
+    }
+
+    /// @notice Alias to {publicWithdraw} for compatibility with off-chain flows.
+    function publicClaim(bytes32 secret, Immutables calldata immutables) external {
+        publicWithdraw(secret, immutables);
+    }
+
     /**
      * @notice Cancel the escrow and return funds to taker after timelock expires.
      * @param immutables The immutable values used to deploy the clone contract.
