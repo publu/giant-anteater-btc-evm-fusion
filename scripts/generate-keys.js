@@ -218,10 +218,14 @@ DEPLOYER=${keySet.ethereum.privateKey}
 # Etherscan API (get from https://etherscan.io/apis)
 ETHERSCAN_API=YOUR_ETHERSCAN_API_KEY
 
-# Example addresses for reference:
-# Bitcoin Address (Bech32): ${keySet.bitcoin.addresses.bech32}
-# Bitcoin Address (P2SH): ${keySet.bitcoin.addresses.p2sh}
-# Ethereum Address: ${keySet.ethereum.checksumAddress}
+# FUNDING ADDRESSES:
+# Bitcoin Testnet (Bech32): ${keySet.bitcoin.addresses.bech32}
+# Bitcoin Testnet (P2SH):   ${keySet.bitcoin.addresses.p2sh}
+# Ethereum Sepolia:         ${keySet.ethereum.checksumAddress}
+#
+# Get testnet funds:
+# Bitcoin: https://coinfaucet.eu/en/btc-testnet/
+# Sepolia: https://sepoliafaucet.com/
 `
 
     const envPath = path.join(process.cwd(), '.env.generated')
