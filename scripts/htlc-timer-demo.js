@@ -18,7 +18,6 @@ const rl = readline.createInterface({
 let fundingTxId = 'fundingtxid'
 let fundingVout = 0
 let fundingValue = 10000
-
 async function main() {
   console.log('\uD83D\uDD2E BTC HTLC Timelock Demo\n')
 
@@ -44,7 +43,6 @@ async function main() {
   fundingValue = await new Promise(res => {
     rl.question('Funding amount in satoshis [10000]: ', ans => res(ans.trim() ? parseInt(ans.trim()) : 10000))
   })
-
   const endTime = Date.now() + lockSeconds * 1000
   console.log('\u23F3 Waiting for timelock... type "claim" to claim early')
   rl.prompt()
